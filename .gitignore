@@ -8,6 +8,7 @@ __pycache__/
 
 config.py
 data.xlsx
+database/
 # Distribution / packaging
 .Python
 build/
