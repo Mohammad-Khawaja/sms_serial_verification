@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import re
 
 from flask import Flask, jsonify, request
 import requests
@@ -10,9 +11,10 @@ from sms_simulator.simulator_manager import run_sms_simulator
 
 app = Flask(__name__)
 
-@app.route("/")
-def main_page():
-	return "hello"
+@app.route("/v1/ok")
+def health_check():
+	ret = {"message": "ok"}
+	return jsonify(ret)
 
 def send_sms(message, receptor):
 	url = f"https://tapi.bale.ai/bot{config.TOKEN}/sendMessage"
@@ -32,11 +34,10 @@ def process():
 	return jsonify(ret), 200
 
 def normalize_string(string: str):
-	from_char = "۰۱۲۳۴۵۶۷۸۹"
-	to_char = "0123456789"
-	for i in range(len(from_char)):
-		string.replace(from_char[i], to_char[i])
-	
+	string = string.upper()
+	table = str.maketrans('۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩', '01234567890123456789')
+	string = string.translate(table)
+	string = re.sub(r'[^a-zA-Z0-9]', '', string)
 	return string
 
 def import_database_from_exel(filepath):
@@ -60,6 +61,7 @@ def import_database_from_exel(filepath):
 	cur.execute("DROP TABLE IF EXISTS invalids")
 	cur.execute("CREATE TABLE invalids(invalid_serial TEXT PRIMARY KEY)")
 	conn.commit()
+	
 	df1 = read_excel(filepath, 1)
 	
 	for index, (faild_serial,) in df1.iterrows():
