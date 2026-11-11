@@ -2,6 +2,7 @@ import os
 
 from flask import Flask, jsonify, request
 import requests
+from pandas import read_excel
 
 from config import TOKEN
 from sms_simulator.simulator_manager import run_sms_simulator
@@ -29,10 +30,22 @@ def process():
 	ret = {"message": "Processing completed."}
 	return jsonify(ret), 200
 
+def import_database_from_exel(filepath):
+	df = read_excel(filepath, 0) # contions lookup data
+	
+	for index, (line, ref, desc, start_serial, end_serial, date) in df.iterrows():
+		print(line, ref, desc, start_serial, end_serial, date)
+	
+	df = read_excel(filepath, 1)
+	
+	for index, (faild_serial,) in df.iterrows():
+		print(faild_serial)
+	
 def check_serial():
 	pass
 	
 if __name__ == "__main__":
-	if os.environ.get("WERKZEUG_RUN_MAIN") is None:	
-		run_sms_simulator()
-	app.run(debug=True, use_reloader=True, host="0.0.0.0")
+	#if os.environ.get("WERKZEUG_RUN_MAIN") is None:	
+#		run_sms_simulator()
+#	app.run(debug=True, use_reloader=True, host="0.0.0.0")
+	import_database_from_exel("data.xlsx")
