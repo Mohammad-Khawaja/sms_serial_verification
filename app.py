@@ -18,7 +18,7 @@ def health_check():
 
 def send_sms(message, receptor):
 	url = f"https://tapi.bale.ai/bot{config.TOKEN}/sendMessage"
-	data = {"text": "hi "+message, "chat_id": receptor}
+	data = {"text": str(message), "chat_id": receptor}
 	r = requests.post(url, json=data)
 	print("status code:", r.status_code)	
 	
@@ -28,7 +28,9 @@ def process():
 	sender = request.form.get("from")
 	print(f"message received. message is {message} and sender is {sender} ")
 	
-	send_sms(message, sender)
+	answer = check_serial(message)
+	
+	send_sms(answer, sender)
 	
 	ret = {"message": "Processing completed."}
 	return jsonify(ret), 200
@@ -73,10 +75,30 @@ def import_database_from_exel(filepath):
 	
 	return len(df0), len(df1)
 	
-def check_serial():
-	pass
+def check_serial(serial):
+	with sqlite3.connect(config.DATABASE_FILE_PATH) as conn:
+		cur = conn.cursor()
+		result = cur.execute("SELECT 1 FROM invalids WHERE invalid_serial = ?", (serial,))
+		if len(result.fetchall()) == 1:
+			return "Invalid serial number"
+		
+		prefix = serial[:2]
+		number = int(serial[2:])
+
+		rows = cur.execute("SELECT start_serial, end_serial FROM serials WHERE substr(start_serial, 1, 2) = ?", (prefix,)).fetchall()
 	
+		for start, end in rows:
+			start_number = int(start[2:])
+			end_number = int(end[2:])
+	
+		if start_number <= number <= end_number:
+			return "Serial number found"
+
+		
+		return "Serial number not found"
+		
 if __name__ == "__main__":
 	if os.environ.get("WERKZEUG_RUN_MAIN") is None:	
 		run_sms_simulator()
+	import_database_from_exel("data.xlsx")
 	app.run(debug=True, use_reloader=True, host="0.0.0.0")
